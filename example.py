@@ -24,7 +24,7 @@ def plot_tau_rec(spec, ion):
 	fig, ax = plt.subplots()
 	alpha = 0.5
 	ax.plot(pobj.tau, pobj.tau_rec, 'k.', alpha = alpha)
-	ax.plot(pobj.tau[bad_idx], pobj.tau_rec[bad_idx], 'r.', alpha = alpha, label = "bad")
+	ax.plot(pobj.tau[bad_idx], pobj.tau_rec[bad_idx], 'r.', alpha = alpha, label = "bad/contaminated")
 	ax.plot(pobj.tau[sat_idx], pobj.tau_rec[sat_idx], 'b.', alpha = alpha, label = "saturated")
 	ax.plot(pobj.tau[corr_idx], pobj.tau_rec[corr_idx], 'g.', alpha = alpha, label = "corrected")
 	ax.legend()

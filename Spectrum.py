@@ -1,8 +1,8 @@
 import numpy as np
-import pyfits as pf 
 import scipy.interpolate as intp
-import os
 import matplotlib.pyplot as plt
+from astropy.io import fits
+import os
 ###
 import universe as un
 reload(un)
@@ -389,7 +389,7 @@ class KodiaqFits(Spectrum):
 		Spectrum.__init__(self, z_qso, object_name, **kwargs)	
 		# Read in flux file
 		flux_filepath = self.filepath + object_name + "_f.fits" 
-		flux_file = pf.open(flux_filepath)[0]
+		flux_file = fits.open(flux_filepath)[0]
 		self.flux = flux_file.data
 		# Get wavelength array
 		crpix1 = flux_file.header['CRPIX1'] # reference pixel 

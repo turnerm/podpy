@@ -1,4 +1,4 @@
-This repository contains the an implentation of the pixel optical depth method as described in Turner et al. 2014, MNRAS, 445, 794, which builds upon the description in Aguirre et al. 2002, ApJ, 576, 1. If you use the code, please cite these two works, which can be found here:
+This repository contains an implentation of the pixel optical depth method as described in Turner et al. 2014, MNRAS, 445, 794, which builds upon the description in Aguirre et al. 2002, ApJ, 576, 1. If you use the code, please cite these two works, which can be found here:
 http://adsabs.harvard.edu/abs/2014MNRAS.445..794T
 http://adsabs.harvard.edu/abs/2002ApJ...576....1A
 If you have any questions, comments, feature reqeusts etc. please contact me at turnerm@mit.edu. 
@@ -16,5 +16,8 @@ spectrum/J010311+131617_e.fits: Spectrum error array
 spectrum/J010311+131617_dla.mask: Spectrum DLA mask
 spectrum/J010311+131617_badreg.mask: Spectrum bad region mask
 
-
-
+REQUIREMENTS
+numpy 
+scipy 
+matplotlib
+astropy
