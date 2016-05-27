@@ -1,0 +1,4 @@
+# Each row in this file contains the start and end 
+# wavelengths of the DLA region(s) that need masking,
+# separated by a space
+3977. 4038. 

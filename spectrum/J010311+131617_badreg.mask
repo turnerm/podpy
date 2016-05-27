@@ -1,0 +1,5 @@
+# Each row in this file contains the start and end 
+# wavelengths of the bad region(s) that need masking,
+# separated by a space
+4035. 4060.
+5050. 5051.
