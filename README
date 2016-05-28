@@ -7,7 +7,7 @@ The example QSO spectrum of J010311+131617 was obtained from the Keck Observator
 
 CONTENTS
 
-example.py: A working example of applying the code to a z=2.710 QSO. Use this to run the code for the first time. 
+example.py: A working example of applying the code to a z=2.710 QSO. Best run interactively (from ipython type 'run example.py') as otherwise the figures may not hold. 
 Spectrum.py: A class that reads in a spectrum and formats it for input into Pod.py
 Pod.py: The main class that recovers optical depths	
 universe.py: Physical constants

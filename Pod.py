@@ -50,38 +50,52 @@ class Pod:
 	def __init__(self):
 		self._get_flux()
 		self._get_tau()
-		if self.z.size > 0:
-			print "*** Finding tau_rec for", self.ion, "***"
-			print "z range:", self.z[0], self.z[-1]
-			print "lambda range:", self.lambdaa[0], self.lambdaa[-1]
-			print "Total number of pixels:", len(self.lambdaa)
-			print "After removing bad pixels from spectrum:", len(np.where(
-				self.flag % 2 == 0)[0]) 
-		else:
-			print "No pixels in required redshift range"
+		try:
+			self.z[0]
+		except IndexError:
+			print "ERROR: No wavelength coverage for HI Lya"
+		# 
+		print "*** Finding tau_rec for", self.ion, "***"
+		print "z range:", self.z[0], self.z[-1]
+		print "lambda range:", self.lambdaa[0], self.lambdaa[-1]
+		print "Total number of pixels:", len(self.lambdaa)
+		print "After removing bad pixels from spectrum:", len(np.where(
+			self.flag % 2 == 0)[0]) 
 			
 	
 	def _get_flux(self):
 		lambda_rest = self.lambda_Z[0]
 		lambdaa = lambda_rest * (1.0 + self.z) 
-		within_spectral_range = np.where((lambdaa >= self.spectrum.lambdaa[0])
-			& (lambdaa <= self.spectrum.lambdaa[-1]))
-		self.z = self.z[within_spectral_range]
-		self.lambdaa = lambdaa[within_spectral_range]
-		self.flux = self.spectrum.flux_function(self.lambdaa)
-		self.sigma_noise = self.spectrum.sigma_noise_function(self.lambdaa)
+		if self.ion == "h1": # No need for interpolation
+			self.idx = np.where((self.spectrum.lambdaa > lambdaa[0]) &
+				(self.spectrum.lambdaa < lambdaa[-1]))
+			self.lambdaa = self.spectrum.lambdaa[self.idx]
+			self.z = self.lambdaa  / lambda_rest - 1.
+			self.flux = self.spectrum.flux[self.idx]
+			self.sigma_noise = self.spectrum.sigma_noise[self.idx]
+		else:
+			within_spectral_range = np.where((lambdaa >= self.spectrum.lambdaa[0])
+				& (lambdaa <= self.spectrum.lambdaa[-1]))
+			self.z = self.z[within_spectral_range]
+			self.lambdaa = lambdaa[within_spectral_range]
+			self.flux = self.spectrum.flux_function(self.lambdaa)
+			self.sigma_noise = self.spectrum.sigma_noise_function(self.lambdaa)
 
 	def _get_tau(self):
 		negative_flux = self.flux <= 0
 		saturated = self.flux <= self.nsigma_sat * self.sigma_noise
-		bad_pixel = self.find_near_bad_pixel(self.spectrum.lambdaa, self.spectrum.flag,
-				self.lambdaa)
+		if self.ion == "h1":
+			bad_pixel = (self.sigma_noise <= 0)
+		else:
+			bad_pixel = self.find_near_bad_pixel(self.spectrum.lambdaa, 
+				self.spectrum.flag, self.lambdaa)
 		self.tau = np.where(negative_flux, Pod.TAU_MAX, -np.log(self.flux))	
 		self.tau[bad_pixel] = Pod.TAU_MIN	
 		# tau_rec takes saturation and negative pixels 
 		self.tau_rec = self.tau.copy()
 		self.tau_rec[saturated] =  Pod.TAU_MAX	
 		negative_tau = np.where(self.tau_rec <= 0)
+		self.tau_rec[negative_tau] =  Pod.TAU_MIN
 		# make a flag array and flag bad, saturated, negative pixels 
 		self.flag = np.zeros(len(self.z), dtype = 'int')	
 		self.flag[bad_pixel] += Pod.FLAG_DISCARD 
@@ -261,6 +275,9 @@ class LymanAlpha(Pod):
 		self._print_stats()
 		if output_log:
 			self._log_all_taus()
+		else:
+			self.tau[self.tau <= 0] = Pod.TAU_MIN 
+			self.tau_rec[self.tau_rec <= 0] = Pod.TAU_MIN 
 		print "*** Done ***\n"
 	
 	def _get_z(self):
@@ -270,10 +287,6 @@ class LymanAlpha(Pod):
 		z_max = z_qso - (1. + z_qso) * Pod.DIST_QSO / un.c
 		idx_lya = np.where((z > z_beta) & (z < z_max))
 		self.z = z[idx_lya]
-		try:
-			self.z[0]
-		except IndexError:
-			print "ERROR: No wavelength coverage for HI Lya"
 
 	def _print_stats(self):
 		print "Pixels analyzed:", len(self.tau)
@@ -372,10 +385,6 @@ class Metal(Pod):
 		z_qso = self.spectrum.z_qso
 		z_near_qso = z_qso - (z_qso + 1.) * Pod.DIST_QSO / un.c
 		z = self.spectrum.h1.z.copy()
-		try:
-			z[0]
-		except IndexError:
-			print "ERROR: No wavelength coverage for", self.ion 
 		# Get z constraints depending on the ion 
 		z_min, z_max = self._get_z_range_from_ion(z[0], z[-1], self.ion, 
 			self.lambda_Z, z_qso)
@@ -421,13 +430,11 @@ class Metal(Pod):
 			10**(self.spectrum.h1.tau_rec))
 		print "Subtracting", n_higher_order, "HI lines"
 		for j in range(n_higher_order):
-			c_list = ['r', 'y', 'c', 'b', 'm' ]
 			order = j + 1 # avoid lya
 			index_lambdas, lambdas = self._get_h1_correction_lambdas(tau_rec, 
 				lambdaa, flag, order)
 			tau_rec[index_lambdas] -= (un.g_h1[order] / un.g_h1[0] * 
 				tau_rec_h1_function(lambdas))
-			test = (un.g_h1[order] / un.g_h1[0] * tau_rec_h1_function(lambdas))
 		# Special case: dealing with saturated pixels 
 		index_saturated = np.where(flag == Pod.FLAG_SAT)[0]
 		for isat in index_saturated: 
@@ -459,6 +466,14 @@ class Metal(Pod):
 		bad_pixel = self.find_near_bad_pixel(self.spectrum.h1.lambdaa, 
 			self.spectrum.h1.flag, lambdas[index_lambdas])
 		index_lambdas = index_lambdas[~(bad_pixel)]
+		# Make sure that the two h1 pixels being integrated between do not 
+		# have tau = max_tau, otherwise don't use them!
+		index_right = self.spectrum.h1.lambdaa.searchsorted(lambdas[index_lambdas],
+			side = 'right')
+		index_left = index_right - 1
+		near_saturated_pixel = ((self.spectrum.h1.flag[index_right] == Pod.FLAG_SAT) 
+			| (self.spectrum.h1.flag[index_left] == Pod.FLAG_SAT)) 
+		index_lambdas = index_lambdas[~near_saturated_pixel]
 		lambdas = lambdas[index_lambdas]
 		return index_lambdas, lambdas
 

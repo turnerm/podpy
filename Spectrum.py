@@ -400,7 +400,7 @@ class KodiaqFits(Spectrum):
 		self.npix = length
 		# Read in error file
 		err_filepath = self.filepath + object_name + "_e.fits" 
-		err_file = pf.open(err_filepath)[0]
+		err_file = fits.open(err_filepath)[0]
 		self.sigma_noise = err_file.data
 		# Mask any bad regions or dlas
 		self.mask_spectrum()
