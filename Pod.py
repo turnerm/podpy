@@ -1,3 +1,10 @@
+"""
+podpy is an implementatin of the pixel optical depth method as described in 
+Turner et al. 2014, MNRAS, 445, 794, and Aguirre et al. 2002, ApJ, 576, 1. 
+Please contact the author (Monica Turner) at turnerm@mit.edu if you have 
+any questions, comment or issues. 
+"""
+
 import numpy as np
 import scipy.interpolate as intp
 import universe as un
@@ -120,10 +127,10 @@ class Pod:
 		# Only use CIV, SiIV, OI and CII redward of the QSO lya emission
 		elif ion in ["c4", "si4", "o1", "c2"]: 
 			z_min = max(z_min, (1. + z_qso) * un.lambda_h1[0] / lambda_Z[0] - 1.)	
-		# Only use SiIII redward of QSO LyB (i.e. in the Lya forest)
+		# Only use SiIII redward of QSO LyB (i.e. use only in the Lya forest)
 		elif ion == "si3":
 			z_min = max(z_min, (1. + z_qso) * un.lambda_h1[1] / lambda_Z[0] - 1.)
-		# Only use NV and SiII redward of QSO Lya emission
+		# Only use NV and SiII blueward of QSO Lya emission
 		elif ion in ["n5", "si2"]:
 			z_max = min(z_max, (1. + z_qso) * un.lambda_h1[0] / lambda_Z[1] - 1.)
 		return z_min, z_max
