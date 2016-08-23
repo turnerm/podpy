@@ -429,6 +429,7 @@ class UserInput(Spectrum):
 
 	def __init__(self,
 				z_qso,
+				object_name,
 				lambdaa,
 				flux,
 				sigma_noise,
