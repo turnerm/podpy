@@ -55,6 +55,7 @@ class Pod:
 	FLAG_REP = 8
 
 	def __init__(self):
+		self._get_z() 
 		self._get_flux()
 		self._get_tau()
 		try:
@@ -69,35 +70,20 @@ class Pod:
 		print "After removing bad pixels from spectrum:", len(np.where(
 			self.flag % 2 == 0)[0]) 
 			
-	
-	def _get_flux(self):
-		lambda_rest = self.lambda_Z[0]
-		lambdaa = lambda_rest * (1.0 + self.z) 
-		if self.ion == "h1": # No need for interpolation
-			self.idx = np.where((self.spectrum.lambdaa > lambdaa[0]) &
-				(self.spectrum.lambdaa < lambdaa[-1]))
-			self.lambdaa = self.spectrum.lambdaa[self.idx]
-			self.z = self.lambdaa  / lambda_rest - 1.
-			self.flux = self.spectrum.flux[self.idx]
-			self.sigma_noise = self.spectrum.sigma_noise[self.idx]
-		else:
-			within_spectral_range = np.where((lambdaa >= self.spectrum.lambdaa[0])
-				& (lambdaa <= self.spectrum.lambdaa[-1]))
-			self.z = self.z[within_spectral_range]
-			self.lambdaa = lambdaa[within_spectral_range]
-			self.flux = self.spectrum.flux_function(self.lambdaa)
-			self.sigma_noise = self.spectrum.sigma_noise_function(self.lambdaa)
+
+	def _get_fiducial_z(self):
+		z_qso = self.spectrum.z_qso
+		z = self.spectrum.lambdaa / un.lambda_h1[0]- 1.0
+		z_beta = (1.0 + z_qso) * (un.lambda_h1[1]) / (un.lambda_h1[0]) - 1.0
+		z_max = z_qso - (1. + z_qso) * Pod.DIST_QSO / un.c
+		idx_lya = np.where((z > z_beta) & (z < z_max))
+		return z[idx_lya]	
 
 	def _get_tau(self):
 		negative_flux = self.flux <= 0
 		saturated = self.flux <= self.nsigma_sat * self.sigma_noise
-		if self.ion == "h1":
-			bad_pixel = (self.sigma_noise <= 0)
-		else:
-			bad_pixel = self.find_near_bad_pixel(self.spectrum.lambdaa, 
-				self.spectrum.flag, self.lambdaa)
 		self.tau = np.where(negative_flux, Pod.TAU_MAX, -np.log(self.flux))	
-		self.tau[bad_pixel] = Pod.TAU_MIN	
+		self.tau[self.bad_pixel] = Pod.TAU_MIN	
 		# tau_rec takes saturation and negative pixels 
 		self.tau_rec = self.tau.copy()
 		self.tau_rec[saturated] =  Pod.TAU_MAX	
@@ -105,7 +91,7 @@ class Pod:
 		self.tau_rec[negative_tau] =  Pod.TAU_MIN
 		# make a flag array and flag bad, saturated, negative pixels 
 		self.flag = np.zeros(len(self.z), dtype = 'int')	
-		self.flag[bad_pixel] += Pod.FLAG_DISCARD 
+		self.flag[self.bad_pixel] += Pod.FLAG_DISCARD 
 		self.flag[saturated] += Pod.FLAG_SAT
 		self.flag[negative_tau] += Pod.FLAG_NEGTAU
 		# calc s/n of the recovered region
@@ -194,7 +180,6 @@ class LymanAlpha(Pod):
 		self.g = un.g_h1
 		self.spectrum = spectrum
 		self.nsigma_sat = nsigma_sat
-		self._get_z() 
 		self.ion = "h1"
 		Pod.__init__(self)
 		# Keep track of higher order line parameters
@@ -288,12 +273,18 @@ class LymanAlpha(Pod):
 		print "*** Done ***\n"
 	
 	def _get_z(self):
-		z_qso = self.spectrum.z_qso
-		z = self.spectrum.lambdaa / un.lambda_h1[0]- 1.0
-		z_beta = (1.0 + z_qso) * (un.lambda_h1[1]) / (un.lambda_h1[0]) - 1.0
-		z_max = z_qso - (1. + z_qso) * Pod.DIST_QSO / un.c
-		idx_lya = np.where((z > z_beta) & (z < z_max))
-		self.z = z[idx_lya]
+		self.z = self._get_fiducial_z()
+
+	def _get_flux(self):
+		lambda_rest = self.lambda_Z[0]
+		lambdaa = lambda_rest * (1.0 + self.z) 
+		self.idx = np.where((self.spectrum.lambdaa >= lambdaa[0]) &
+			(self.spectrum.lambdaa <= lambdaa[-1]))
+		self.lambdaa = self.spectrum.lambdaa[self.idx]
+		self.flux = self.spectrum.flux[self.idx]
+		self.sigma_noise = self.spectrum.sigma_noise[self.idx]
+		self.bad_pixel = self.sigma_noise <= 0
+	
 
 	def _print_stats(self):
 		print "Pixels analyzed:", len(self.tau)
@@ -349,7 +340,6 @@ class Metal(Pod):
 		self.ion = ion
 		self.nsigma_sat = nsigma_sat
 		self.lambda_Z, self.g = self._get_ion_properties(self.ion)
-		self._get_z(correct_self)
 		Pod.__init__(self)
 		if take_min_doublet: 
 			self._get_weaker_tau()
@@ -388,16 +378,29 @@ class Metal(Pod):
 		g_Z = vars(un)["g_" + ion] 
 		return(lambda_Z.copy(), g_Z)
 
-	def _get_z(self, correct_self):
+	def _get_z(self):
 		z_qso = self.spectrum.z_qso
-		z_near_qso = z_qso - (z_qso + 1.) * Pod.DIST_QSO / un.c
-		z = self.spectrum.h1.z.copy()
+		z = self._get_fiducial_z()
 		# Get z constraints depending on the ion 
 		z_min, z_max = self._get_z_range_from_ion(z[0], z[-1], self.ion, 
 			self.lambda_Z, z_qso)
 		index_z_min = z.searchsorted(z_min, side = 'left')
 		index_z_max = z.searchsorted(z_max, side = 'right') 
 		self.z = z[index_z_min:index_z_max]
+
+	
+	def _get_flux(self):
+		lambda_rest = self.lambda_Z[0]
+		lambdaa = lambda_rest * (1.0 + self.z) 
+		within_spectral_range = np.where((lambdaa >= self.spectrum.lambdaa[0])
+			& (lambdaa <= self.spectrum.lambdaa[-1]))
+		self.z = self.z[within_spectral_range]
+		self.lambdaa = lambdaa[within_spectral_range]
+		self.flux = self.spectrum.flux_function(self.lambdaa)
+		self.sigma_noise = self.spectrum.sigma_noise_function(self.lambdaa)
+		self.bad_pixel = self.find_near_bad_pixel(self.spectrum.lambdaa, 
+				self.spectrum.flag, self.lambdaa)
+	
 
 	def _get_weaker_tau(self):
 		# Find the weaker line
