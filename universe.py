@@ -86,3 +86,19 @@ g_fe2 = f_fe2 * lambda_fe2
 # Constants 
 c =  299792.458 # speed of light in km/s 
 
+
+# Confidence intervals 
+
+from scipy.stats import norm 
+
+one_sigma_above = 100. * norm.cdf(1)
+two_sigma_above = 100. * norm.cdf(2)
+three_sigma_above = 100. * norm.cdf(3)
+
+one_sigma_below = 100. - one_sigma_above
+two_sigma_below = 100. - two_sigma_above
+three_sigma_below = 100. - three_sigma_above
+
+
+
+

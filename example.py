@@ -15,10 +15,12 @@ command.
 
 import Spectrum  
 import Pod 
+import TauBinned
 import numpy as np
 import matplotlib.pyplot as plt
 reload(Spectrum)
 reload(Pod)
+reload(TauBinned)
 
 # Plots the recovered (corrected) tau against the original. For more
 # details on the flag values, please see the Pod.Pod documentation. 
@@ -56,7 +58,7 @@ spec = Spectrum.KodiaqFits(z_qso,
 						filepath = filepath, 
 						mask_badreg = True, 
 						mask_dla = True)
-spec.plot_spectrum()
+#spec.plot_spectrum()
 
 # Recover HI with the fiduial input parameters. See Pod.LymanAlpha and Pod.Pod
 # documentation for the description of these.
@@ -80,4 +82,22 @@ spec_nodlamask = Spectrum.KodiaqFits(z_qso,
 spec_nodlamask.get_tau_rec_h1()
 spec_nodlamask.get_tau_rec_o6()
 plot_tau_rec(spec_nodlamask, "o6")
+
+
+A = TauBinned.TauBinned(spec.h1, spec.c4)
+fig, ax = plt.subplots()
+
+ax.errorbar(A.tau_binned_x, A.tau_binned_y, yerr = A.tau_binned_err,
+	marker='o', linestyle='-', color='black', linewidth=1)
+ax.axhline(A.tau_min, c = 'k', ls = ":")
+ax.set_xlabel(r"$\log_{10} \tau$ HI")
+ax.set_ylabel(r"median $\log_{10} \tau$ CIV")
+ax.set_xlim(-3.5, 1.5)
+ax.set_ylim(-3.5, -1.0)
+ax.minorticks_on()
+
+fig.show()
+
+
+
 

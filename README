@@ -11,6 +11,7 @@ CONTENTS
 example.py: A working example of applying the code to a z=2.710 QSO. Best run interactively (from ipython type 'run example.py') as otherwise the figures may not hold. 
 Spectrum.py: A class that reads in a spectrum and formats it for input into Pod.py
 Pod.py: The main class that recovers optical depths	
+TauBinned.py: A class for creating objects that have the percentile of one ion as binned by another
 universe.py: Physical constants
 spectrum/J010311+131617_f.fits: Spectrum flux array 
 spectrum/J010311+131617_e.fits: Spectrum error array
