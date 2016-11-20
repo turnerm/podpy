@@ -8,7 +8,6 @@ any questions, comment or issues.
 import numpy as np
 import numpy.random as rd
 import universe as un
-reload(un)
 
 class TauBinned:
 

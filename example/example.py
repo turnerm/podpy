@@ -13,14 +13,13 @@ are given in the documentation, which can be found using the help()
 command.  
 """
 
-import Spectrum  
-import Pod 
-import TauBinned
+from podpy import Spectrum, Pod, TauBinned
 import numpy as np
 import matplotlib.pyplot as plt
-reload(Spectrum)
-reload(Pod)
-reload(TauBinned)
+import os
+
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 # Plots the recovered (corrected) tau against the original. For more
 # details on the flag values, please see the Pod.Pod documentation. 
@@ -49,7 +48,7 @@ def plot_tau_rec(spec, ion):
 # Parameters for initializing a KODIAQ spectrum
 object_name = "J010311+131617"
 z_qso = 2.710
-filepath = "spectrum/"
+filepath = __location__ + "/spectrum/"
 
 # Initialize Spectrum object, with option to manually mask bad regions as well
 # as DLAs. See Spectrum.Spectrum and Spectrum.Kodiaq for details. 

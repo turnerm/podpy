@@ -12,9 +12,7 @@ from astropy.io import fits
 import os
 ###
 import universe as un
-reload(un)
 import Pod 
-reload(Pod)
 
 
 class Spectrum:
