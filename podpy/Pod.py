@@ -128,26 +128,32 @@ class Pod:
 		self.tau_rec = np.log10(self.tau_rec)
 
 	def print_to_ascii(self,
-						path, 
+						path = "", 
 						label = "",
-						print_bad = False, 
-						print_header = False):
+						print_bad_pixels = False, 
+						print_header = True,
+						output_log_tau = True):
 		filename = path + self.spectrum.object_name + "_tau_" + self.ion +\
 			label + ".dat"
 		f = open(filename, 'w')
-		if print_bad: 
+		if print_bad_pixels: 
 			index_good = np.arange(len(self.tau_rec), dtype = int)
 		else:
 			index_good = np.where(self.flag % 2 == 0)[0]
 		if print_header:
-			print >> f, "# redshift      tau   flux         sigma_noise"
-		for i in index_good:	
-			if output_log:
-				print >> f, "%9.7f  %10.7f %11.9f  %11.9f" % (self.z[i], 
-					self.tau_rec[i], self.flux[i], self.sigma_noise[i])
-			else:
-				print >> f, "%9.7f  %20.7f  %11.9f %11.9f" % (self.z[i], 
-					self.tau_rec[i], self.flux[i], self.sigma_noise[i])
+			header = "redshift  tau          flux         sigma_noise  flag"
+		else:
+			header = "" 
+		tau = self.tau_rec[index_good]
+		if not output_log_tau:
+			tau = 10. ** tau 
+		fmt = "%9.7f  %12.9f  %11.9f  %11.9f  %d" 
+		data = np.array([self.z[index_good], tau, 
+						self.flux[index_good], 
+						self.sigma_noise[index_good],
+						self.flag[index_good]]).T
+		np.savetxt(f, data,  header = header, fmt = fmt)
+		f.close()
 	
 # Subclasses for different lines
 
